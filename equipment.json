@@ -1,0 +1,50 @@
+{
+    "number-of-items": 
+    [
+        {
+            "name": "Greatsword",
+            "weight": 6.00,
+            "value": 50.00
+        },
+        {
+            "name": "Explorer's Pack",
+            "weight": 5.00,
+            "value": 10.00
+        },
+        {
+            "name": "Small Knife",
+            "weight": 0.50,
+            "value": 2.00
+        },
+        {
+            "name": "Waterskin",
+            "weight": 2.00,
+            "value": 1.00
+        },
+        {
+            "name": "Leather Armor",
+            "weight": 10.00,
+            "value": 45.00
+        }
+    ],
+
+    "description":[],
+    "index" : "chariot",
+    "name" : "chariot",
+    
+    "equipment_category" :
+        {
+            "index": "mount-and-vehicle",
+            "name": "Mounts and Vehicles",
+            "url": "/api/equipment-categories/mounts-and-vehicles",
+            "vehicle_category": "tack, harness, and drawn vehicles"
+        },
+    "cost" : {
+        "quantity": 250,
+        "unit": "gp",
+        "weight": 100,
+        "url": "/api/equipment/chariot"
+    },
+    "contents" :[],
+    "properties" : []
+}
