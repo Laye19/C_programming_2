@@ -1,152 +1,274 @@
 #include <stdio.h>
-#include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
-#include <unistd.h>
+#include <string.h>
+#include <getopt.h>
 
+typedef struct Equipment {
+    char index[50];
+    char name[50];
+    char equipment_category_index[50];
+    char equipment_category_name[50];
+    char equipment_category_url[256]; // Adjust buffer size as needed
+    char vehicle_category[50];
+    double cost_quantity;
+    char cost_unit[10];
+    double cost_weight;
+    char cost_url[256]; // Adjust buffer size as needed
+    double weight; // weight of the equipment
+    double value;  
+    struct Equipment* next; // Pointer to the next equipment
+} Equipment;
 
-#define MAX_LIST_SIZE (100) // Define the maximum list size
-// Custom boolean type
-typedef enum { FALSE, TRUE } Bool;
-// Custom structure for any key
-struct KeyInfo {
-    uint8_t level;
-    char* Value;
-};
+typedef struct Coins {
+    int cp;
+    int sp;
+    int ep;
+    int gp;
+    int pp;
+} Coins;
 
-enum GeometryComponents { VOLUME, SURFACE, MASS };// Enumerated components
-enum ShapeType { SPHERE, CONE, CYLINDER, LINE, CUBE }; // Add more shapes if needed
+typedef struct Inventory {
+    Equipment* head;
+    Equipment* tail;
+} Inventory;
 
-// Custom strsep function
-char *myCustomStrsep(char **stringPtr, const char *delimiter) {
-    char *result = *stringPtr;
-    if (result) {
-        *stringPtr += strcspn(*stringPtr, delimiter); // Skip leading delimiters if any 
-        if (**stringPtr)
-            *(*stringPtr)++ = '\0';
-        else
-            *stringPtr = NULL;}
-    return result;
-}
+typedef struct spell {
+    char name[50];
+    double power;
+} spell;
 
-// Custom structure for shape informat
- struct shape{ 
-    enum ShapeType shapeType; // Shape type (SPHERE, CONE, CYLINDER, LINE, CUBE)
-    int size;  // Size of the shape (e.g. radius, height, length, etc.) 
- };
+typedef struct spellNode {
+    spell data;
+    struct spellNode* next;
+} spellNode;
 
-struct AttackType{ // Custom structure for attack type information 
-    char* name; // Name of the attack type 
-    char* index; // Index of the attack type     
-    char* url; // URL of the attack type 
-};
+void parse_json_file(const char* filename, Equipment* equipment);
+void add_equipment(Inventory* inventory, Equipment* new_equipment);
+void display_inventory(const Inventory* inventory);
+double calculate_total_weight(const Inventory* inventory);
+double calculate_total_value(const Inventory* inventory, const Coins* coins);
+void parse_command_line(int argc, char* argv[], Inventory* inventory, double* max_weight, Coins* coins, char** camp_file);
+void cycle(spellNode** head);
+void push(spellNode** head, spell* new_spell);
+spell* pop(spellNode** head);
+void free_inventory(Inventory* inventory);
 
-// Custom structure for a list of attack types
-enum AttackTypeList{attack_at_characterelevel, attack_at_slot_level}; // Enumerated attack types 
+int main(int argc, char* argv[]) {
+    Inventory inventory = {NULL, NULL};
+    double max_weight = 0.0;
+    Coins coins = {0, 0, 0, 0, 0};
+    char* camp_file = NULL;
 
- struct attack{ 
-    enum AttackTypeList AttackTypeList; // Attack type information 
-    struct KeyInfo *keyvalues; // Pointer to the next attack type 
- };
+    Equipment Equipment;
+    spellNode* spell_stack = NULL;
 
- struct response{ // Custom structure for response information 
-    char *name; // Name of the response 
-    char *index; // Index of the response 
-    char *url; // URL of the response
-};
+    parse_json_file("equipment.json", &Equipment);
 
-struct responseList{ // Custom structure for a list of responses 
-    struct response response_type; // Response information 
-    char* rep_succes; // Pointer to the next response 
-};
+    parse_command_line(argc, argv, &inventory, &max_weight, &coins, &camp_file);
 
-// Custom structure for a list of shapes
-struct game{
-    char* name; // Name of the game
-    char* index; // Index of the game
-    char* url; // URL of the game
-    char** describtion; // Description of the game
-    uint8_t describtion_count; // Number of descriptions
-    char** highScore; // Highscore of the game
-    uint8_t highScore_count; // Number of highscores
-    char* range; // Range of the game
-    uint8_t componentsCounter; // Number of components
-    enum GeometryComponents components[MAX_LIST_SIZE]; // List of components
-    char* material; // Material of the game 
-    struct attack* attack; // Attack information 
-    char* defense; // Defense information
-    char* speed; // Speed information
-    struct shape* shape; // Shape information 
-    struct response* classes; // Response information
-    struct game* next; // Pointer to the next game
+    display_inventory(&inventory);
 
-};
+       // Display inventory
+    display_inventory(&inventory);
 
+    // Push spells onto the spell stack
+    spell new_spell1 = {"Fireball", 50.0};
+    push(&spell_stack, &new_spell1);
 
-struct gameNode{ // Custom structure for a list of games
-    struct game* data; // Game information
-    struct gameNode* next; // Pointer to the next game
-};
+    spell new_spell2 = {"Heal", 30.0};
+    push(&spell_stack, &new_spell2);
 
-//function prototypes
-void push(struct gameNode** head, struct game* game); // push a game to the list of games ***1
-void printGames(struct gameNode* head); // print the list of games ***2
-void freeGames(struct gameNode* head); // free the list of games ***3 
-//void addShape(struct shape** head, struct shape* shape); // push a shape to the list of shapes ***13
-struct game* popGame(struct gameNode** head); // pop a game from the list of games*** 4
-void printfGameOptions(struct gameNode* head, char* optionstring); // print the game options ***5
-void freeList(struct gameNode* head); // free the list of games ***6
-void cycleGame(struct gameNode** head); // cycle through the list of games ***7
-void jsonParse(FILE* filePointer, struct game*); // parse the json string ***8
-uint8_t parseArray(FILE* filePointer, char*** element ); // parse the array ***9 
-uint8_t parseEnumGeometryComponentsArray(FILE* filePointer, enum GeometryComponents** element); // parse the enum geometry components array ***10
-uint8_t parseKeyInfoArray(FILE* filePointer, struct KeyInfo** KeyInfo); // parse the key info array ***11
-void parseNameUrlIndex(FILE* filePointer, char** name, char** url, char** index); // parse the name url index ***13
-uint8_t parseNameUrlIndexArray(FILE* filePointer, struct responseList** classes); // parse the name url index array ***12
+    // Cycle through the spell stack
+    cycle(&spell_stack);
 
-
-int main(int argc, char *argv[]) 
-{
-    struct gameNode* gameList = NULL; // Initialize the list of games
-    uint8_t characterLevel = 0; // Initialize the counter
-    char* filename; // Replace with your JSON file
-    uint8_t amontOfGamesClose [9] = {0}; // Initialize the counter for the amount of games close to the character level 
-    char* nameHistoryFile; // Name of the history file
-    uint8_t writeLogFiles = 0; // Initialize the counter for the log files      
-
-    // Parse the command line arguments
-    for(int i = 1; i < argc; i++) {
-        if(strcmp(argv[i], "-") == 0) { // Check if the argument is a flag 
-            if(strcomp(argv[i + 1], "s") == 0) { // Check if the flag is -f
-                i++; // Increment the counter
-            for(int j = 0; j < 9; j++) { // Loop through the amount of games close to the character level
-                if(isdigit(argv[i + j]) == 0){ // Check if the argument is a digit
-                    amontOfGamesClose[j] = atoi(argv[i + j]); // Parse the amount of games close to the character level
-                    i++; // Increment the counter
-                }else{
-                break; // Break the loop
-              }
-            }
-           
-        } if(strcmp(argv[i + 1], "l") == 0) { // Check if the flag is -l
-            characterLevel = atoi(argv[i + 2]); // Parse the character level
-            i++; // Increment the counter
-        } else if(strcmp(argv[i + 1], "h") == 0) { // Check if the flag is -h
-            nameHistoryFile = argv[i + 1]; // Set the name of the history file
-            writeLogFiles = 1; // Set the counter for the log files
-            i++; // Increment the counter
-        } 
-        }else {
-            struct game* currentGame = (struct game*)Calloc(1, sizeof(struct game)); // Allocate memory for the game
-            char* filename = calloc(sizeof(argv[i])/sizeof(char)+7, sizeof(char)); // Allocate memory for the filename
-            strcpy(filename, "JSON/"); // Copy the filename to the JSON folder 
-            strcat(filename, argv[i]); // Concatenate the filename
-        }
+    spell* popped_spell = pop(&spell_stack);
+    if (popped_spell) {
+        printf("Popped Spell: Name: %s, Power: %.2f\n", popped_spell->name, popped_spell->power);
+        free(popped_spell); // Free memory allocated for the popped spell
+    } else {
+        printf("Spell stack is empty.\n");
     }
-   
+
+    double total_weight = calculate_total_weight(&inventory);
+    double total_value = calculate_total_value(&inventory, &coins);
+
+    printf("Total Weight: %.2f\n", total_weight);
+    printf("Total Value: %.2f\n", total_value);
+    if (max_weight > 0 && total_weight > max_weight) {
+        printf("You are encumbered!\n");
+    }
+
+    free_inventory(&inventory);
+    free(camp_file);
     return 0;
 }
 
+// Function to parse JSON file and populate equipment structure
+void parse_json_file(const char* filename, Equipment* equipment) {
+    FILE* file = fopen(filename, "r");
+    if (!file) {
+        perror("Error opening file");
+        exit(EXIT_FAILURE);
+    }
 
+    char buffer[1024]; // Adjust buffer size as needed
+    char* token;
 
+    while (fgets(buffer, sizeof(buffer), file)) {
+        if ((token = strstr(buffer, "\"index\""))) {
+            sscanf(token, "\"index\": \"%[^\"]\"", equipment->index);
+        } else if ((token = strstr(buffer, "\"name\""))) {
+            sscanf(token, "\"name\": \"%[^\"]\"", equipment->name);
+        } else if ((token = strstr(buffer, "\"equipment_category\""))) {
+            if ((token = strstr(buffer, "\"index\""))) {
+                sscanf(token, "\"index\": \"%[^\"]\"", equipment->equipment_category_index);
+            }
+            if ((token = strstr(buffer, "\"name\""))) {
+                sscanf(token, "\"name\": \"%[^\"]\"", equipment->equipment_category_name);
+            }
+            if ((token = strstr(buffer, "\"url\""))) {
+                sscanf(token, "\"url\": \"%[^\"]\"", equipment->equipment_category_url);
+            }
+            if ((token = strstr(buffer, "\"vehicle_category\""))) {
+                sscanf(token, "\"vehicle_category\": \"%[^\"]\"", equipment->vehicle_category);
+            }
+        } else if ((token = strstr(buffer, "\"cost\""))) {
+            if ((token = strstr(buffer, "\"quantity\""))) {
+                sscanf(token, "\"quantity\": %lf", &equipment->cost_quantity);
+            }
+            if ((token = strstr(buffer, "\"unit\""))) {
+                sscanf(token, "\"unit\": \"%[^\"]\"", equipment->cost_unit);
+            }
+            if ((token = strstr(buffer, "\"weight\""))) {
+                sscanf(token, "\"weight\": %lf", &equipment->cost_weight);
+            }
+            if ((token = strstr(buffer, "\"url\""))) {
+                sscanf(token, "\"url\": \"%[^\"]\"", equipment->cost_url);
+            }
+        }
+    }
+
+    fclose(file);
+}
+
+void add_equipment(Inventory* inventory, Equipment* new_equipment) {
+    new_equipment->next = NULL;
+    if (!inventory->head) {
+        inventory->head = new_equipment;
+        inventory->tail = new_equipment;
+    } else {
+        inventory->tail->next = new_equipment;
+        inventory->tail = new_equipment;
+    }
+}
+
+// Function to display the inventory
+void display_inventory(const Inventory* inventory) {
+    if (!inventory->head) return;
+    Equipment* current = inventory->head;
+    do {
+        printf("Name: %s, Weight: %.2f, Value: %.2f\n", current->name, current->weight, current->value);
+        current = current->next;
+    } while (current);
+}
+
+// Function to calculate the total weight of the inventory
+double calculate_total_weight(const Inventory* inventory) {
+    double total_weight = 0.0;
+    if (!inventory->head) return total_weight;
+    Equipment* current = inventory->head;
+    do {
+        total_weight += current->weight;
+        current = current->next;
+    } while (current);
+    return total_weight;
+}
+
+//Function to calculate the total value of the inventory
+double calculate_total_value(const Inventory* inventory, const Coins* coins) {
+    double total_value = 0.0;
+    if (!inventory->head) return total_value;
+    Equipment* current = inventory->head;
+    do {
+        total_value += current->value;
+        current = current->next;
+    } while (current);
+    total_value += coins->cp * 0.01 + coins->sp * 0.1 + coins->ep * 0.5 + coins->gp * 1 + coins->pp * 10;
+    return total_value;
+}
+
+// Function to parse command line
+void parse_command_line(int argc, char* argv[], Inventory* inventory, double* max_weight, Coins* coins, char** camp_file) {
+int option;
+while ((option = getopt(argc, argv, "w:m:c:")) != -1) {
+switch (option) {
+case 'w':
+*max_weight = atof(optarg);
+break;
+case 'm':
+sscanf(optarg, "%dcp %dsp %dep %dgp %dpp", &coins->cp, &coins->sp, &coins->ep, &coins->gp, &coins->pp);
+break;
+case 'c':
+*camp_file = strdup(optarg);
+break;
+default:
+fprintf(stderr, "Usage: %s equipment-files [number-of-items] [-w max-weight] [-m money] [-c camp-file]\n", argv[0]);
+exit(EXIT_FAILURE);
+}
+}
+
+for (int index = optind; index < argc; index++) {
+    Equipment* new_equipment = (Equipment*)malloc(sizeof(Equipment));
+    if (!new_equipment) {
+        fprintf(stderr, "Memory allocation failed for equipment\n");
+        exit(EXIT_FAILURE);
+    }
+
+    parse_json_file(argv[index], new_equipment);
+    add_equipment(inventory, new_equipment);
+}
+}
+
+void cycle(spellNode** head) {
+if (!head || !*head) return;
+*head = (*head)->next;
+}
+
+void push(spellNode** head, spell* new_spell) {
+spellNode* new_node = (spellNode*)malloc(sizeof(spellNode));
+if (!new_node) {
+fprintf(stderr, "Memory allocation failed for spellNode\n");
+exit(EXIT_FAILURE);
+}
+new_node->data = *new_spell;
+new_node->next = *head;
+*head = new_node;
+}
+
+spell* pop(spellNode** head) {
+if (!head || !head) return NULL;
+spellNode* temp = *head;
+spell* popped_spell = (spell*)malloc(sizeof(spell));
+if (!popped_spell) {
+fprintf(stderr, "Memory allocation failed for spell\n");
+exit(EXIT_FAILURE);
+}
+*popped_spell = temp->data;
+*head = (*head)->next;
+free(temp);
+return popped_spell;
+}
+
+void free_inventory(Inventory* inventory) {
+if (!inventory->head) return;
+Equipment* current = inventory->head;
+while (current) {
+Equipment* next = current->next;
+free(current);
+current = next;
+}
+inventory->head = NULL;
+inventory->tail = NULL;
+}
+
+//Flowchart: https://miro.com/app/board/uXjVKDegJEM=/
